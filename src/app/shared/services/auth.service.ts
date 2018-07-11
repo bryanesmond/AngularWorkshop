@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient,  } from '@angular/common/http';
+import { HttpClient,  HttpErrorResponse} from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 const requestOptions = {
   withCredentials: true,
@@ -12,6 +13,8 @@ const requestOptions = {
 })
 export class AuthService {
 
+  private url = `${environment.apiBaseUrl}/user`;
+
   constructor(private http: HttpClient) { }
 
   login(email: string, password: string): Observable<boolean | Response> {
@@ -19,7 +22,7 @@ export class AuthService {
 
     const loginInfo = { 'email': email, 'password': password };
 
-    return this.http.put('https://sails-ws.herokuapp.com/user/login', loginInfo, requestOptions)
+    return this.http.put(`${this.url}/login`, loginInfo, requestOptions)
         .pipe(
             tap((res: Response) => {
                 if (res) {
@@ -38,7 +41,7 @@ export class AuthService {
   }
   signup(email: string, password: string): Observable<boolean | Response> {
     const loginInfo = { 'email': email, 'password': password };
-    return this.http.post("https://sails-ws.herokuapp.com/user/", loginInfo, requestOptions)
+    return this.http.post(this.url, loginInfo, requestOptions)
         .pipe(
             tap((res: Response) => {
                 if (res) {
@@ -53,4 +56,27 @@ export class AuthService {
             }),
         );
    }
+
+   isAuthenticated(): Observable<boolean | Response> {
+    return this.http
+        .get(`${this.url}/identity`, requestOptions)
+        .pipe(
+            tap((res: Response) => {
+                if (res) {
+                    console.log('logged in');
+                    return of(true);
+                }
+
+                console.log('not logged in');
+                return of(false);
+            }),
+            catchError((error: HttpErrorResponse) => {
+                if (error.status !== 403) {
+                    console.log('isAuthenticated error', error);
+                }
+                console.log('not logged in', error);
+                return of(false);
+            }),
+        );
+}
 }
